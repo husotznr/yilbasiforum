@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noel Şöminesi - Yorumlu</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        :root {
+            --text-main: #fffbeb;
+            --card-bg: rgba(20, 10, 5, 0.85);
+            --accent: #f59e0b;
+            --delete-color: #ef4444;
+            --border-radius: 12px;
+            --comment-bg: rgba(255, 255, 255, 0.07);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0; padding: 0;
+            display: flex; justify-content: center;
+            min-height: 100vh;
+            background-color: #000; color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        #bg-video {
+            position: fixed; right: 0; bottom: 0;
+            min-width: 100%; min-height: 100%;
+            z-index: -3; object-fit: cover;
+        }
+
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -2; background: radial-gradient(circle, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.9) 100%);
+            pointer-events: none;
+        }
+
+        #snow-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none;
+        }
+
+        .container {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 600px;
+            padding: 80px 20px 100px 20px;
+        }
+
+        header { text-align: center; margin-bottom: 40px; }
+        header h1 {
+            font-size: 3rem; margin-bottom: 10px; font-weight: 800;
+            color: #fff; text-shadow: 0 0 20px rgba(245, 158, 11, 0.8);
+        }
+        
+        /* GİRİŞ EKRANI */
+        #login-screen {
+            text-align: center; padding: 40px;
+            background: var(--card-bg); border-radius: 16px;
+            border: 1px solid rgba(245, 158, 11, 0.3); backdrop-filter: blur(10px);
+        }
+
+        .btn-google {
+            background-color: #fff; color: #333;
+            padding: 12px 24px; border-radius: 8px; border: none;
+            font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+            margin: 0 auto; transition: 0.2s;
+        }
+        .btn-google:hover { background-color: #f1f1f1; }
+
+        /* UYGULAMA EKRANI */
+        #app-screen { display: none; }
+
+        .user-info {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px; background: rgba(0,0,0,0.5);
+            padding: 10px 15px; border-radius: 8px;
+        }
+        .user-details { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 32px; height: 32px; border-radius: 50%; }
+        .btn-logout { background: none; border: 1px solid #666; color: #ccc; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+
+        .input-card, .message-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            backdrop-filter: blur(8px); padding: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+        }
+        
+        textarea {
+            width: 100%; padding: 15px; background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #574c41; border-radius: 8px;
+            font-family: inherit; font-size: 1rem; color: #fff;
+            box-sizing: border-box; resize: vertical; min-height: 100px;
+        }
+        textarea:focus { outline: none; border-color: var(--accent); }
+
+        .btn-send {
+            width: 100%; padding: 14px; margin-top: 15px; border: none; border-radius: 8px;
+            background: linear-gradient(to right, #b91c1c, #d97706);
+            color: #fff; font-weight: 700; cursor: pointer;
+        }
+
+        /* Mesaj Kartı ve Yorum Stilleri */
+        .message-card { position: relative; animation: fadeIn 0.5s ease; }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .user-name { font-weight: 700; color: #fcd34d; }
+        .timestamp { font-size: 0.75rem; color: #a8a29e; }
+        
+        .delete-btn {
+            position: absolute; top: 10px; right: 10px;
+            background: var(--delete-color); color: white; border: none;
+            width: 24px; height: 24px; border-radius: 50%;
+            cursor: pointer; font-weight: bold; font-size: 12px;
+            display: none; align-items: center; justify-content: center; z-index: 10;
+        }
+
+        /* YORUM BÖLÜMÜ CSS */
+        .post-actions {
+            margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: right;
+        }
+        .toggle-comments-btn {
+            background: transparent; color: var(--accent); border: 1px solid var(--accent);
+            padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: 0.2s;
+        }
+        .toggle-comments-btn:hover { background: var(--accent); color: #000; }
+
+        .comments-section {
+            display: none; /* Varsayılan olarak gizli */
+            margin-top: 15px;
+            background: rgba(0,0,0,0.2);
+            padding: 15px; border-radius: 8px;
+        }
+        .comment-list { margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .single-comment {
+            background: var(--comment-bg); padding: 8px 12px; border-radius: 6px; font-size: 0.9rem;
+        }
+        .comment-header { font-size: 0.75rem; color: #aaa; margin-bottom: 3px; display: flex; justify-content: space-between; }
+        .comment-author { color: #fcd34d; font-weight: 600; }
+        
+        .comment-input-area { display: flex; gap: 10px; }
+        .comment-input {
+            flex: 1; padding: 8px; background: rgba(0,0,0,0.4); border: 1px solid #555;
+            border-radius: 6px; color: #fff; min-height: 40px; resize: none;
+        }
+        .btn-comment-send {
+            background: var(--accent); color: #000; border: none; padding: 0 15px;
+            border-radius: 6px; font-weight: bold; cursor: pointer;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <video autoplay muted loop playsinline id="bg-video">
+        <source src="246688.mp4" type="video/mp4">
+    </video>
+    <div class="overlay"></div>
+    <canvas id="snow-canvas"></canvas>
+
+    <div class="container">
+        <header>
+            <h1>Yılbaşı 2026</h1>
+            <p>Enayilerin ortak anı duvarı</p>
+        </header>
+
+        <div id="login-screen">
+            <p style="margin-bottom: 20px;">Mesaj yazmak ve okumak için giriş yapmalısın.</p>
+            <button class="btn-google" id="google-login-btn">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
+                Google ile Giriş Yap
+            </button>
+        </div>
+
+        <div id="app-screen">
+            <div class="user-info">
+                <div class="user-details">
+                    <img id="current-user-img" class="user-avatar" src="" alt="">
+                    <span id="current-user-name">Kullanıcı</span>
+                </div>
+                <button class="btn-logout" id="logout-btn">Çıkış</button>
+            </div>
+
+            <div class="input-card">
+                <textarea id="content" placeholder="Buraya bir mesaj gir.."></textarea>
+                <button class="btn-send" id="send-btn">Mesajı Gönder</button>
+            </div>
+
+            <div id="message-list"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- AYARLAR ---
+        const ADMIN_EMAIL = "husosude1903@gmail.com"; 
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCBJfj3-ZVw36LtWJUJpF9kxN8jplOpcjo",
+            authDomain: "yilbasiforum.firebaseapp.com",
+            projectId: "yilbasiforum",
+            storageBucket: "yilbasiforum.firebasestorage.app",
+            messagingSenderId: "1015776586858",
+            appId: "1:1015776586858:web:a714be75a9f2d6c446ae13"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        const loginScreen = document.getElementById('login-screen');
+        const appScreen = document.getElementById('app-screen');
+        const loginBtn = document.getElementById('google-login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const sendBtn = document.getElementById('send-btn');
+        const contentInput = document.getElementById('content');
+        const messageList = document.getElementById('message-list');
+        const userNameDisplay = document.getElementById('current-user-name');
+        const userImgDisplay = document.getElementById('current-user-img');
+
+        let currentUser = null;
+
+        // --- AUTH ---
+        loginBtn.addEventListener('click', () => {
+            signInWithPopup(auth, provider).catch((error) => alert("Giriş hatası: " + error.message));
+        });
+
+        logoutBtn.addEventListener('click', () => signOut(auth));
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loginScreen.style.display = 'none';
+                appScreen.style.display = 'block';
+                userNameDisplay.textContent = user.displayName;
+                userImgDisplay.src = user.photoURL;
+                listenForMessages();
+            } else {
+                currentUser = null;
+                loginScreen.style.display = 'block';
+                appScreen.style.display = 'none';
+                messageList.innerHTML = '';
+            }
+        });
+
+        // --- POST GÖNDER ---
+        sendBtn.addEventListener('click', async () => {
+            const text = contentInput.value.trim();
+            if (!text) return;
+            try {
+                await addDoc(collection(db, "posts"), {
+                    name: currentUser.displayName,
+                    email: currentUser.email,
+                    content: text,
+                    timestamp: serverTimestamp(),
+                    timeString: new Date().toLocaleDateString('tr-TR') + ' • ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'})
+                });
+                contentInput.value = '';
+            } catch (e) { alert("Mesaj gönderilemedi: " + e.message); }
+        });
+
+        function listenForMessages() {
+            const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+            onSnapshot(q, (snapshot) => {
+                messageList.innerHTML = "";
+                snapshot.forEach((docSnap) => {
+                    createPostElement(docSnap.data(), docSnap.id);
+                });
+            });
+        }
+
+        // --- POST OLUŞTURMA VE YORUM MANTIĞI ---
+        function createPostElement(post, id) {
+            const div = document.createElement('div');
+            div.className = 'message-card';
+
+            let deleteButtonHTML = '';
+            if (currentUser && currentUser.email === ADMIN_EMAIL) {
+                deleteButtonHTML = `<button class="delete-btn" onclick="deletePost('${id}')" style="display:flex;">X</button>`;
+            }
+
+            // Kart HTML Yapısı
+            div.innerHTML = `
+                ${deleteButtonHTML}
+                <div class="card-header">
+                    <span class="user-name">${escapeHtml(post.name)}</span>
+                    <span class="timestamp">${post.timeString}</span>
+                </div>
+                <div style="line-height:1.5; white-space: pre-wrap;">${escapeHtml(post.content)}</div>
+                
+                <div class="post-actions">
+                    <button class="toggle-comments-btn" id="btn-toggle-${id}">💬 Yorumlar</button>
+                </div>
+
+                <div class="comments-section" id="comments-section-${id}">
+                    <div class="comment-list" id="list-${id}">
+                        </div>
+                    <div class="comment-input-area">
+                        <textarea class="comment-input" id="input-${id}" placeholder="Yorum yaz..."></textarea>
+                        <button class="btn-comment-send" id="send-${id}">Gönder</button>
+                    </div>
+                </div>
+            `;
+
+            messageList.appendChild(div);
+
+            // --- YORUM JS OLAYLARI --- //
+            
+            // 1. Aç/Kapa Butonu
+            const toggleBtn = document.getElementById(`btn-toggle-${id}`);
+            const commentSection = document.getElementById(`comments-section-${id}`);
+            
+            toggleBtn.addEventListener('click', () => {
+                if (commentSection.style.display === 'none' || commentSection.style.display === '') {
+                    commentSection.style.display = 'block';
+                    toggleBtn.textContent = '🔼 Gizle';
+                } else {
+                    commentSection.style.display = 'none';
+                    toggleBtn.textContent = '💬 Yorumlar';
+                }
+            });
+
+            // 2. Yorum Gönder Butonu
+            const sendCommentBtn = document.getElementById(`send-${id}`);
+            const commentInput = document.getElementById(`input-${id}`);
+
+            sendCommentBtn.addEventListener('click', async () => {
+                const commentText = commentInput.value.trim();
+                if (!commentText) return;
+
+                // Sub-collection'a ekle: posts -> [postId] -> comments -> [commentId]
+                await addDoc(collection(db, "posts", id, "comments"), {
+                    name: currentUser.displayName,
+                    text: commentText,
+                    timestamp: serverTimestamp()
+                });
+                commentInput.value = '';
+            });
+
+            // 3. Yorumları Dinle (Realtime)
+            const commentsRef = collection(db, "posts", id, "comments");
+            const qComments = query(commentsRef, orderBy("timestamp", "asc"));
+            const listContainer = document.getElementById(`list-${id}`);
+
+            onSnapshot(qComments, (snap) => {
+                listContainer.innerHTML = ''; // Temizle
+                snap.forEach(doc => {
+                    const c = doc.data();
+                    const cDiv = document.createElement('div');
+                    cDiv.className = 'single-comment';
+                    cDiv.innerHTML = `
+                        <div class="comment-header">
+                            <span class="comment-author">${escapeHtml(c.name)}</span>
+                        </div>
+                        <div>${escapeHtml(c.text)}</div>
+                    `;
+                    listContainer.appendChild(cDiv);
+                });
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        window.deletePost = async (id) => {
+            if (confirm("Bu mesajı silmek istediğine emin misin?")) {
+                await deleteDoc(doc(db, "posts", id));
+            }
+        };
+
+        // --- KAR EFEKTİ ---
+        const canvas = document.getElementById('snow-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, flakes = [], groundHeightMap = []; 
+        class Flake {
+            constructor(x, y, r, vy, vx) {
+                this.x = x; this.y = y; this.r = r; this.vy = vy; this.vx = vx || Math.random() * 1 - 0.5; 
+            }
+            update() {
+                this.y += this.vy; this.x += this.vx;
+                let groundLevel = groundHeightMap[Math.floor(this.x)];
+                if (this.y + this.r >= groundLevel || this.y + this.r >= height) {
+                    accumulateSnow(Math.floor(this.x), this.r * 2); return true;
+                } return false;
+            }
+            draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.fill(); }
+        }
+        function init() {
+            width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height;
+            groundHeightMap = new Array(width).fill(height); flakes = [];
+        }
+        function accumulateSnow(centerX, amount) {
+            const spread = 8; 
+            for (let i = -spread; i <= spread; i++) {
+                let targetX = centerX + i;
+                if (targetX >= 0 && targetX < width) {
+                    let increase = amount * (1 - Math.abs(i) / spread) * 0.05;
+                    groundHeightMap[targetX] -= increase;
+                    if (groundHeightMap[targetX] < height - (height/6.5)) groundHeightMap[targetX] = height - (height/6.5);
+                }
+            }
+        }
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            let maxFlakes = width < 600 ? 150 : 400; 
+            while (flakes.length < maxFlakes) flakes.push(new Flake(Math.random() * width, -10, Math.random() * 3 + 1, Math.random() * 2 + 1));
+            for (let i = flakes.length - 1; i >= 0; i--) { if (flakes[i].update()) flakes.splice(i, 1); else { flakes[i].draw(); if (flakes[i].x > width + 50) flakes.splice(i, 1); } }
+            ctx.beginPath(); ctx.moveTo(0, height); for (let x = 0; x < width; x++) ctx.lineTo(x, groundHeightMap[x]); ctx.lineTo(width, height); ctx.closePath(); ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.fill();
+            requestAnimationFrame(animate);
+        }
+        window.addEventListener('resize', init); init(); animate();
+    </script>
+</body>
+</html>
