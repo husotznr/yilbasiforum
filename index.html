@@ -3,17 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Noel Şöminesi - Yorumlu</title>
+    <title>Miyav's Anı Duvarı</title>
+    
+    <link rel="icon" type="image/png" href="kedi.png">
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 
         :root {
             --text-main: #fffbeb;
-            --card-bg: rgba(20, 10, 5, 0.85);
+            --card-bg: rgba(20, 10, 5, 0.9);
             --accent: #f59e0b;
-            --delete-color: #ef4444;
+            --dislike: #ef4444;
+            --muted: #a8a29e;
             --border-radius: 12px;
-            --comment-bg: rgba(255, 255, 255, 0.07);
+            --comment-bg: rgba(255, 255, 255, 0.05);
         }
 
         body {
@@ -45,7 +49,7 @@
         .container {
             position: relative; z-index: 1;
             width: 100%; max-width: 600px;
-            padding: 80px 20px 100px 20px;
+            padding: 80px 20px 100px 20px; /* Alttan boşluk bıraktık footer için */
         }
 
         header { text-align: center; margin-bottom: 40px; }
@@ -74,8 +78,8 @@
 
         .user-info {
             display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 20px; background: rgba(0,0,0,0.5);
-            padding: 10px 15px; border-radius: 8px;
+            margin-bottom: 20px; background: rgba(0,0,0,0.6);
+            padding: 10px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
         }
         .user-details { display: flex; align-items: center; gap: 10px; }
         .user-avatar { width: 32px; height: 32px; border-radius: 50%; }
@@ -83,8 +87,8 @@
 
         .input-card, .message-card {
             background: var(--card-bg);
-            border: 1px solid rgba(245, 158, 11, 0.2);
-            backdrop-filter: blur(8px); padding: 25px;
+            border: 1px solid rgba(245, 158, 11, 0.15);
+            backdrop-filter: blur(12px); padding: 25px;
             border-radius: var(--border-radius);
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             margin-bottom: 20px;
@@ -104,7 +108,7 @@
             color: #fff; font-weight: 700; cursor: pointer;
         }
 
-        /* Mesaj Kartı ve Yorum Stilleri */
+        /* Mesaj Kartı ve Aksiyonlar */
         .message-card { position: relative; animation: fadeIn 0.5s ease; }
         .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
         .user-name { font-weight: 700; color: #fcd34d; }
@@ -112,27 +116,32 @@
         
         .delete-btn {
             position: absolute; top: 10px; right: 10px;
-            background: var(--delete-color); color: white; border: none;
+            background: var(--dislike); color: white; border: none;
             width: 24px; height: 24px; border-radius: 50%;
             cursor: pointer; font-weight: bold; font-size: 12px;
             display: none; align-items: center; justify-content: center; z-index: 10;
         }
 
-        /* YORUM BÖLÜMÜ CSS */
         .post-actions {
             margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);
-            text-align: right;
+            display: flex; align-items: center; gap: 15px;
         }
-        .toggle-comments-btn {
-            background: transparent; color: var(--accent); border: 1px solid var(--accent);
-            padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: 0.2s;
+
+        .btn-action {
+            background: transparent; border: none; color: var(--muted);
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+            font-size: 0.9rem; padding: 5px 8px; border-radius: 6px; transition: 0.2s;
         }
-        .toggle-comments-btn:hover { background: var(--accent); color: #000; }
+        .btn-action:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .btn-action svg { width: 20px; height: 20px; fill: currentColor; }
+
+        .btn-action.liked { color: var(--accent); }
+        .btn-action.disliked { color: var(--dislike); }
+        .count-text { font-size: 0.85rem; font-weight: 600; }
 
         .comments-section {
-            display: none; /* Varsayılan olarak gizli */
-            margin-top: 15px;
-            background: rgba(0,0,0,0.2);
+            display: none; margin-top: 15px;
+            background: rgba(0,0,0,0.3);
             padding: 15px; border-radius: 8px;
         }
         .comment-list { margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
@@ -152,6 +161,35 @@
             border-radius: 6px; font-weight: bold; cursor: pointer;
         }
 
+        /* --- FOOTER KISMI --- */
+        .site-footer {
+            position: fixed;
+            bottom: 15px;
+            width: 100%;
+            text-align: center;
+            z-index: 100; /* Karın üstünde */
+            pointer-events: none; /* Boşluğa tıklayınca arkaya geçsin */
+        }
+
+        .site-footer a {
+            pointer-events: auto; /* Link tıklanabilir olsun */
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 6px 14px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .site-footer a:hover {
+            color: #fff;
+            background: rgba(0, 0, 0, 0.8);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -166,11 +204,11 @@
     <div class="container">
         <header>
             <h1>Yılbaşı 2026</h1>
-            <p>Enayilerin ortak anı duvarı</p>
+            <p>Miyavs topluluğu anı duvarı</p>
         </header>
 
         <div id="login-screen">
-            <p style="margin-bottom: 20px;">Mesaj yazmak ve okumak için giriş yapmalısın.</p>
+            <p style="margin-bottom: 20px;">Mesaj yazmak  giriş yapmalısın.</p>
             <button class="btn-google" id="google-login-btn">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
                 Google ile Giriş Yap
@@ -187,12 +225,16 @@
             </div>
 
             <div class="input-card">
-                <textarea id="content" placeholder="Buraya bir mesaj gir.."></textarea>
+                <textarea id="content" placeholder="Buraya bir anı bırak..."></textarea>
                 <button class="btn-send" id="send-btn">Mesajı Gönder</button>
             </div>
 
             <div id="message-list"></div>
         </div>
+    </div>
+
+    <div class="site-footer">
+        <a href="https://www.instagram.com/hsyntznr" target="_blank">Made by @hsyntznr</a>
     </div>
 
     <script type="module">
@@ -201,7 +243,7 @@
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
@@ -218,6 +260,7 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
+        // DOM Elements
         const loginScreen = document.getElementById('login-screen');
         const appScreen = document.getElementById('app-screen');
         const loginBtn = document.getElementById('google-login-btn');
@@ -262,6 +305,8 @@
                     name: currentUser.displayName,
                     email: currentUser.email,
                     content: text,
+                    likes: [],
+                    dislikes: [],
                     timestamp: serverTimestamp(),
                     timeString: new Date().toLocaleDateString('tr-TR') + ' • ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'})
                 });
@@ -279,7 +324,7 @@
             });
         }
 
-        // --- POST OLUŞTURMA VE YORUM MANTIĞI ---
+        // --- HTML OLUŞTURMA & ETKİLEŞİM ---
         function createPostElement(post, id) {
             const div = document.createElement('div');
             div.className = 'message-card';
@@ -289,7 +334,14 @@
                 deleteButtonHTML = `<button class="delete-btn" onclick="deletePost('${id}')" style="display:flex;">X</button>`;
             }
 
-            // Kart HTML Yapısı
+            const likes = post.likes || [];
+            const dislikes = post.dislikes || [];
+            const userLiked = likes.includes(currentUser.uid) ? 'liked' : '';
+            const userDisliked = dislikes.includes(currentUser.uid) ? 'disliked' : '';
+            
+            const likeCount = likes.length > 0 ? likes.length : '';
+            const dislikeCount = dislikes.length > 0 ? dislikes.length : '';
+
             div.innerHTML = `
                 ${deleteButtonHTML}
                 <div class="card-header">
@@ -299,12 +351,25 @@
                 <div style="line-height:1.5; white-space: pre-wrap;">${escapeHtml(post.content)}</div>
                 
                 <div class="post-actions">
-                    <button class="toggle-comments-btn" id="btn-toggle-${id}">💬 Yorumlar</button>
+                    <button class="btn-action ${userLiked}" id="like-btn-${id}">
+                        <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-1.91l-.01-.01L23 10z"/></svg>
+                        <span class="count-text">${likeCount}</span>
+                    </button>
+
+                    <button class="btn-action ${userDisliked}" id="dislike-btn-${id}">
+                        <svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v1.91l.01.01L1 14c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg>
+                        <span class="count-text">${dislikeCount}</span>
+                    </button>
+
+                    <div style="flex-grow:1;"></div>
+
+                    <button class="btn-action" id="btn-toggle-${id}">
+                        💬 Yorumlar <span id="comment-count-${id}" style="margin-left:5px; font-weight:bold;"></span>
+                    </button>
                 </div>
 
                 <div class="comments-section" id="comments-section-${id}">
-                    <div class="comment-list" id="list-${id}">
-                        </div>
+                    <div class="comment-list" id="list-${id}"></div>
                     <div class="comment-input-area">
                         <textarea class="comment-input" id="input-${id}" placeholder="Yorum yaz..."></textarea>
                         <button class="btn-comment-send" id="send-${id}">Gönder</button>
@@ -314,59 +379,74 @@
 
             messageList.appendChild(div);
 
-            // --- YORUM JS OLAYLARI --- //
-            
-            // 1. Aç/Kapa Butonu
+            document.getElementById(`like-btn-${id}`).addEventListener('click', () => handleVote(id, 'like'));
+            document.getElementById(`dislike-btn-${id}`).addEventListener('click', () => handleVote(id, 'dislike'));
+
             const toggleBtn = document.getElementById(`btn-toggle-${id}`);
             const commentSection = document.getElementById(`comments-section-${id}`);
             
             toggleBtn.addEventListener('click', () => {
                 if (commentSection.style.display === 'none' || commentSection.style.display === '') {
                     commentSection.style.display = 'block';
-                    toggleBtn.textContent = '🔼 Gizle';
                 } else {
                     commentSection.style.display = 'none';
-                    toggleBtn.textContent = '💬 Yorumlar';
                 }
             });
 
-            // 2. Yorum Gönder Butonu
-            const sendCommentBtn = document.getElementById(`send-${id}`);
-            const commentInput = document.getElementById(`input-${id}`);
-
-            sendCommentBtn.addEventListener('click', async () => {
-                const commentText = commentInput.value.trim();
-                if (!commentText) return;
-
-                // Sub-collection'a ekle: posts -> [postId] -> comments -> [commentId]
+            document.getElementById(`send-${id}`).addEventListener('click', async () => {
+                const input = document.getElementById(`input-${id}`);
+                const txt = input.value.trim();
+                if (!txt) return;
                 await addDoc(collection(db, "posts", id, "comments"), {
-                    name: currentUser.displayName,
-                    text: commentText,
-                    timestamp: serverTimestamp()
+                    name: currentUser.displayName, text: txt, timestamp: serverTimestamp()
                 });
-                commentInput.value = '';
+                input.value = '';
             });
 
-            // 3. Yorumları Dinle (Realtime)
             const commentsRef = collection(db, "posts", id, "comments");
             const qComments = query(commentsRef, orderBy("timestamp", "asc"));
-            const listContainer = document.getElementById(`list-${id}`);
-
             onSnapshot(qComments, (snap) => {
-                listContainer.innerHTML = ''; // Temizle
+                const listContainer = document.getElementById(`list-${id}`);
+                const countBadge = document.getElementById(`comment-count-${id}`);
+                const count = snap.size;
+                if (count > 0) countBadge.textContent = `(${count})`;
+                else countBadge.textContent = "";
+
+                listContainer.innerHTML = ''; 
                 snap.forEach(doc => {
                     const c = doc.data();
-                    const cDiv = document.createElement('div');
-                    cDiv.className = 'single-comment';
-                    cDiv.innerHTML = `
-                        <div class="comment-header">
-                            <span class="comment-author">${escapeHtml(c.name)}</span>
-                        </div>
-                        <div>${escapeHtml(c.text)}</div>
-                    `;
-                    listContainer.appendChild(cDiv);
+                    listContainer.innerHTML += `
+                        <div class="single-comment">
+                            <div class="comment-header"><span class="comment-author">${escapeHtml(c.name)}</span></div>
+                            <div>${escapeHtml(c.text)}</div>
+                        </div>`;
                 });
             });
+        }
+
+        async function handleVote(postId, type) {
+            const postRef = doc(db, "posts", postId);
+            const docSnap = await getDoc(postRef);
+            if (!docSnap.exists()) return;
+
+            const data = docSnap.data();
+            const likes = data.likes || [];
+            const dislikes = data.dislikes || [];
+            const uid = currentUser.uid;
+
+            if (type === 'like') {
+                if (likes.includes(uid)) {
+                    await updateDoc(postRef, { likes: arrayRemove(uid) });
+                } else {
+                    await updateDoc(postRef, { likes: arrayUnion(uid), dislikes: arrayRemove(uid) });
+                }
+            } else if (type === 'dislike') {
+                if (dislikes.includes(uid)) {
+                    await updateDoc(postRef, { dislikes: arrayRemove(uid) });
+                } else {
+                    await updateDoc(postRef, { dislikes: arrayUnion(uid), likes: arrayRemove(uid) });
+                }
+            }
         }
 
         function escapeHtml(text) {
@@ -380,7 +460,6 @@
             }
         };
 
-        // --- KAR EFEKTİ ---
         const canvas = document.getElementById('snow-canvas');
         const ctx = canvas.getContext('2d');
         let width, height, flakes = [], groundHeightMap = []; 
