@@ -389,7 +389,7 @@
                         const diffSeconds = (now - lastActiveTime) / 1000; // Saniye farkı
                         
                         // Eğer son sinyal 3 dakika (180 saniye) içindeyse online kabul et
-                        if(diffSeconds < 180) {
+                        if(diffSeconds < 120) {
                             isOnline = true;
                         } else {
                             // 3 dakikadan eskiyse veritabanından da sil (Otomatik Temizlik)
@@ -657,3 +657,4 @@
             </div>
     </div>
 </html>
+
