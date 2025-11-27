@@ -388,11 +388,11 @@
                         const lastActiveTime = u.lastActive.toDate(); // Firebase tarihini JS tarihine çevir
                         const diffSeconds = (now - lastActiveTime) / 1000; // Saniye farkı
                         
-                        // Eğer son sinyal 3 dakika (180 saniye) içindeyse online kabul et
+                        // Eğer son sinyal 2 dakika (120 saniye) içindeyse online kabul et
                         if(diffSeconds < 120) {
                             isOnline = true;
                         } else {
-                            // 3 dakikadan eskiyse veritabanından da sil (Otomatik Temizlik)
+                            // 2 dakikadan eskiyse veritabanından da sil (Otomatik Temizlik)
                             // Bu sayede veritabanın şişmez
                             deleteDoc(docSnap.ref);
                         }
@@ -657,4 +657,5 @@
             </div>
     </div>
 </html>
+
 
