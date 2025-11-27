@@ -189,6 +189,23 @@
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
             box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
         }
+        /* --- ADMIN ONLINE USER PANEL --- */
+        #admin-panel {
+            position: fixed; bottom: 50px; left: 20px; /* Footer'ın biraz üstünde */
+            background: rgba(0,0,0,0.85); 
+            border: 1px solid #f59e0b; /* Altın rengi çerçeve */
+            padding: 15px; border-radius: 12px; z-index: 200;
+            width: 220px; backdrop-filter: blur(10px);
+            font-size: 0.9rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        #admin-panel h3 { 
+            margin: 0 0 10px 0; color: #f59e0b; font-size: 1rem; 
+            border-bottom: 1px solid #333; padding-bottom: 5px; 
+        }
+        .online-user-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .online-user-item img { width: 24px; height: 24px; border-radius: 50%; border: 1px solid #fff; }
+        .online-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; margin-left: auto; box-shadow: 0 0 5px #22c55e; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -238,14 +255,15 @@
     </div>
 
     <script type="module">
-        // --- AYARLAR ---
+        // --- 1. AYARLAR KISMI ---
+        // SENİN GMAİL ADRESİNİ BURAYA YAZ (Admin yetkisi için şart)
         const ADMIN_EMAIL = "husosude1903@gmail.com"; 
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-        // --- FIREBASE CONFIG ---
+        // --- 2. FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyCBJfj3-ZVw36LtWJUJpF9kxN8jplOpcjo",
             authDomain: "yilbasiforum.firebaseapp.com",
@@ -260,7 +278,7 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        // DOM Elements
+        // --- DOM Elemanları ---
         const loginScreen = document.getElementById('login-screen');
         const appScreen = document.getElementById('app-screen');
         const loginBtn = document.getElementById('google-login-btn');
@@ -270,75 +288,157 @@
         const messageList = document.getElementById('message-list');
         const userNameDisplay = document.getElementById('current-user-name');
         const userImgDisplay = document.getElementById('current-user-img');
+        
+        // Admin Paneli Elemanları
+        const adminPanel = document.getElementById('admin-panel');
+        const onlineUsersList = document.getElementById('online-users-list');
 
         let currentUser = null;
+        let heartbeatInterval = null;
 
-        // --- AUTH ---
+        // --- GİRİŞ / ÇIKIŞ İŞLEMLERİ ---
         loginBtn.addEventListener('click', () => {
             signInWithPopup(auth, provider).catch((error) => alert("Giriş hatası: " + error.message));
         });
 
-        logoutBtn.addEventListener('click', () => signOut(auth));
+        logoutBtn.addEventListener('click', () => {
+            // Çıkış yaparken online listesinden sil
+            if(currentUser) {
+                deleteDoc(doc(db, "online_users", currentUser.uid));
+            }
+            signOut(auth);
+        });
 
+        // Kullanıcı Durumunu İzle
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                // Giriş Başarılı
                 currentUser = user;
                 loginScreen.style.display = 'none';
                 appScreen.style.display = 'block';
                 userNameDisplay.textContent = user.displayName;
                 userImgDisplay.src = user.photoURL;
+                
+                // Mesajları Dinle
                 listenForMessages();
+
+                // Online Sistemini Başlat
+                startHeartbeat(user);
+
+                // Eğer Adminse Paneli Aç
+                if(user.email === ADMIN_EMAIL) {
+                    if(adminPanel) adminPanel.style.display = 'block';
+                    listenOnlineUsers();
+                } else {
+                    if(adminPanel) adminPanel.style.display = 'none';
+                }
+
             } else {
+                // Çıkış Yapıldı
                 currentUser = null;
                 loginScreen.style.display = 'block';
                 appScreen.style.display = 'none';
                 messageList.innerHTML = '';
+                if(adminPanel) adminPanel.style.display = 'none';
+                if(heartbeatInterval) clearInterval(heartbeatInterval);
             }
         });
 
-        // --- POST GÖNDER ---
+        // --- ONLINE KULLANICI SİSTEMİ (Heartbeat) ---
+        function startHeartbeat(user) {
+            updatePresence(user); // İlk sinyal
+            // Her 60 saniyede bir güncelle
+            heartbeatInterval = setInterval(() => {
+                updatePresence(user);
+            }, 60000);
+
+            // Sayfa kapanırken silmeyi dene
+            window.addEventListener('beforeunload', () => {
+                deleteDoc(doc(db, "online_users", user.uid));
+            });
+        }
+
+        async function updatePresence(user) {
+            try {
+                await setDoc(doc(db, "online_users", user.uid), {
+                    name: user.displayName,
+                    photo: user.photoURL,
+                    lastActive: serverTimestamp()
+                });
+            } catch(e) { console.log("Presence hatası:", e); }
+        }
+
+        // --- ADMIN: Online Listesini Dinle ---
+        function listenOnlineUsers() {
+            const q = query(collection(db, "online_users"));
+            onSnapshot(q, (snapshot) => {
+                if(!onlineUsersList) return;
+                onlineUsersList.innerHTML = "";
+                snapshot.forEach((docSnap) => {
+                    const u = docSnap.data();
+                    onlineUsersList.innerHTML += `
+                        <div class="online-user-item">
+                            <img src="${u.photo}" alt="user">
+                            <span>${escapeHtml(u.name)}</span>
+                            <div class="online-dot"></div>
+                        </div>
+                    `;
+                });
+                if(snapshot.empty) {
+                    onlineUsersList.innerHTML = "<div style='color:#aaa; font-size:0.8rem;'>Kimse yok :(</div>";
+                }
+            });
+        }
+
+        // --- POST GÖNDERME ---
         sendBtn.addEventListener('click', async () => {
             const text = contentInput.value.trim();
             if (!text) return;
+
             try {
                 await addDoc(collection(db, "posts"), {
                     name: currentUser.displayName,
                     email: currentUser.email,
                     content: text,
-                    likes: [],
+                    likes: [], 
                     dislikes: [],
                     timestamp: serverTimestamp(),
                     timeString: new Date().toLocaleDateString('tr-TR') + ' • ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'})
                 });
                 contentInput.value = '';
-            } catch (e) { alert("Mesaj gönderilemedi: " + e.message); }
+            } catch (e) {
+                alert("Mesaj gönderilemedi: " + e.message);
+            }
         });
 
+        // --- POSTLARI LİSTELEME ---
         function listenForMessages() {
             const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+            
             onSnapshot(q, (snapshot) => {
-                messageList.innerHTML = "";
+                messageList.innerHTML = ""; 
                 snapshot.forEach((docSnap) => {
                     createPostElement(docSnap.data(), docSnap.id);
                 });
             });
         }
 
-        // --- HTML OLUŞTURMA & ETKİLEŞİM ---
+        // --- HTML KART OLUŞTURMA ---
         function createPostElement(post, id) {
             const div = document.createElement('div');
             div.className = 'message-card';
 
+            // Admin Silme Butonu
             let deleteButtonHTML = '';
             if (currentUser && currentUser.email === ADMIN_EMAIL) {
                 deleteButtonHTML = `<button class="delete-btn" onclick="deletePost('${id}')" style="display:flex;">X</button>`;
             }
 
+            // Like/Dislike Hesaplama
             const likes = post.likes || [];
             const dislikes = post.dislikes || [];
             const userLiked = likes.includes(currentUser.uid) ? 'liked' : '';
             const userDisliked = dislikes.includes(currentUser.uid) ? 'disliked' : '';
-            
             const likeCount = likes.length > 0 ? likes.length : '';
             const dislikeCount = dislikes.length > 0 ? dislikes.length : '';
 
@@ -379,9 +479,13 @@
 
             messageList.appendChild(div);
 
+            // --- OLAY DİNLEYİCİLERİ (Event Listeners) --- //
+
+            // 1. Like & Dislike
             document.getElementById(`like-btn-${id}`).addEventListener('click', () => handleVote(id, 'like'));
             document.getElementById(`dislike-btn-${id}`).addEventListener('click', () => handleVote(id, 'dislike'));
 
+            // 2. Yorum Aç/Kapa
             const toggleBtn = document.getElementById(`btn-toggle-${id}`);
             const commentSection = document.getElementById(`comments-section-${id}`);
             
@@ -393,6 +497,7 @@
                 }
             });
 
+            // 3. Yorum Gönder
             document.getElementById(`send-${id}`).addEventListener('click', async () => {
                 const input = document.getElementById(`input-${id}`);
                 const txt = input.value.trim();
@@ -403,15 +508,19 @@
                 input.value = '';
             });
 
+            // 4. Yorumları Canlı Dinle & Sayıyı Güncelle
             const commentsRef = collection(db, "posts", id, "comments");
             const qComments = query(commentsRef, orderBy("timestamp", "asc"));
             onSnapshot(qComments, (snap) => {
                 const listContainer = document.getElementById(`list-${id}`);
                 const countBadge = document.getElementById(`comment-count-${id}`);
+                
+                // Sayı Rozeti
                 const count = snap.size;
                 if (count > 0) countBadge.textContent = `(${count})`;
                 else countBadge.textContent = "";
 
+                // Listeyi Doldur
                 listContainer.innerHTML = ''; 
                 snap.forEach(doc => {
                     const c = doc.data();
@@ -424,6 +533,7 @@
             });
         }
 
+        // --- LIKE/DISLIKE İŞLEMİ ---
         async function handleVote(postId, type) {
             const postRef = doc(db, "posts", postId);
             const docSnap = await getDoc(postRef);
@@ -436,30 +546,43 @@
 
             if (type === 'like') {
                 if (likes.includes(uid)) {
+                    // Zaten like varsa kaldır
                     await updateDoc(postRef, { likes: arrayRemove(uid) });
                 } else {
-                    await updateDoc(postRef, { likes: arrayUnion(uid), dislikes: arrayRemove(uid) });
+                    // Like ekle, dislike varsa kaldır
+                    await updateDoc(postRef, { 
+                        likes: arrayUnion(uid),
+                        dislikes: arrayRemove(uid)
+                    });
                 }
             } else if (type === 'dislike') {
                 if (dislikes.includes(uid)) {
+                    // Zaten dislike varsa kaldır
                     await updateDoc(postRef, { dislikes: arrayRemove(uid) });
                 } else {
-                    await updateDoc(postRef, { dislikes: arrayUnion(uid), likes: arrayRemove(uid) });
+                    // Dislike ekle, like varsa kaldır
+                    await updateDoc(postRef, { 
+                        dislikes: arrayUnion(uid),
+                        likes: arrayRemove(uid)
+                    });
                 }
             }
         }
 
+        // --- HTML GÜVENLİĞİ ---
         function escapeHtml(text) {
             if (!text) return "";
             return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
+        // --- POST SİLME (Admin İçin) ---
         window.deletePost = async (id) => {
             if (confirm("Bu mesajı silmek istediğine emin misin?")) {
                 await deleteDoc(doc(db, "posts", id));
             }
         };
 
+        // --- KAR ANİMASYONU (Alt Kısımda) ---
         const canvas = document.getElementById('snow-canvas');
         const ctx = canvas.getContext('2d');
         let width, height, flakes = [], groundHeightMap = []; 
@@ -502,14 +625,9 @@
         window.addEventListener('resize', init); init(); animate();
     </script>
 </body>
+<div id="admin-panel" style="display:none;">
+        <h3>🟢 Aktif Kişiler</h3>
+        <div id="online-users-list">
+            </div>
+    </div>
 </html>
-
-
-
-
-
-
-
-
-
-
