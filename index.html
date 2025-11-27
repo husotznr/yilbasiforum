@@ -369,22 +369,48 @@
         }
 
         // --- ADMIN: Online Listesini Dinle ---
+        // --- ADMIN: Online Listesini Dinle ve Temizle ---
         function listenOnlineUsers() {
             const q = query(collection(db, "online_users"));
+            
             onSnapshot(q, (snapshot) => {
                 if(!onlineUsersList) return;
                 onlineUsersList.innerHTML = "";
+                
+                const now = new Date(); // Adminin şu anki saati
+
                 snapshot.forEach((docSnap) => {
                     const u = docSnap.data();
-                    onlineUsersList.innerHTML += `
-                        <div class="online-user-item">
-                            <img src="${u.photo}" alt="user">
-                            <span>${escapeHtml(u.name)}</span>
-                            <div class="online-dot"></div>
-                        </div>
-                    `;
+                    let isOnline = false;
+
+                    // Zaman kontrolü: Son görülme zamanına bak
+                    if(u.lastActive) {
+                        const lastActiveTime = u.lastActive.toDate(); // Firebase tarihini JS tarihine çevir
+                        const diffSeconds = (now - lastActiveTime) / 1000; // Saniye farkı
+                        
+                        // Eğer son sinyal 3 dakika (180 saniye) içindeyse online kabul et
+                        if(diffSeconds < 180) {
+                            isOnline = true;
+                        } else {
+                            // 3 dakikadan eskiyse veritabanından da sil (Otomatik Temizlik)
+                            // Bu sayede veritabanın şişmez
+                            deleteDoc(docSnap.ref);
+                        }
+                    }
+
+                    // Sadece gerçekten online olanları ekrana bas
+                    if(isOnline) {
+                        onlineUsersList.innerHTML += `
+                            <div class="online-user-item">
+                                <img src="${u.photo}" alt="user">
+                                <span>${escapeHtml(u.name)}</span>
+                                <div class="online-dot"></div>
+                            </div>
+                        `;
+                    }
                 });
-                if(snapshot.empty) {
+
+                if(onlineUsersList.innerHTML === "") {
                     onlineUsersList.innerHTML = "<div style='color:#aaa; font-size:0.8rem;'>Kimse yok :(</div>";
                 }
             });
