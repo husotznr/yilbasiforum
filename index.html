@@ -12,7 +12,7 @@
 
         :root {
             --text-main: #fffbeb;
-            --card-bg: rgba(20, 10, 5, 0.9);
+            --card-bg: rgba(20, 10, 5, 0.95);
             --accent: #f59e0b;
             --dislike: #ef4444;
             --muted: #a8a29e;
@@ -30,9 +30,11 @@
         }
 
         #bg-video {
-            position: fixed; right: 0; bottom: 0;
+            position: fixed; top: 50%; left: 50%;
             min-width: 100%; min-height: 100%;
-            z-index: -3; object-fit: cover;
+            width: auto; height: auto;
+            z-index: -3; transform: translate(-50%, -50%);
+            object-fit: cover; background-size: cover;
         }
 
         .overlay {
@@ -49,7 +51,7 @@
         .container {
             position: relative; z-index: 1;
             width: 100%; max-width: 600px;
-            padding: 80px 20px 100px 20px; /* Alttan boşluk bıraktık footer için */
+            padding: 80px 20px 100px 20px;
         }
 
         header { text-align: center; margin-bottom: 40px; }
@@ -58,7 +60,6 @@
             color: #fff; text-shadow: 0 0 20px rgba(245, 158, 11, 0.8);
         }
         
-        /* GİRİŞ EKRANI */
         #login-screen {
             text-align: center; padding: 40px;
             background: var(--card-bg); border-radius: 16px;
@@ -73,7 +74,6 @@
         }
         .btn-google:hover { background-color: #f1f1f1; }
 
-        /* UYGULAMA EKRANI */
         #app-screen { display: none; }
 
         .user-info {
@@ -102,18 +102,33 @@
         }
         textarea:focus { outline: none; border-color: var(--accent); }
 
+        .file-upload-wrapper {
+            margin-top: 10px; display: flex; align-items: center; gap: 10px;
+        }
+        .custom-file-upload {
+            border: 1px solid #574c41; display: inline-block; padding: 8px 12px;
+            cursor: pointer; border-radius: 8px; font-size: 0.9rem; background: rgba(0,0,0,0.3);
+            color: #ccc; transition: 0.2s;
+        }
+        .custom-file-upload:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        #image-preview { max-width: 100px; max-height: 100px; border-radius: 8px; display: none; margin-left: 10px; border: 1px solid var(--accent); object-fit: cover;}
+        input[type="file"] { display: none; }
+
         .btn-send {
             width: 100%; padding: 14px; margin-top: 15px; border: none; border-radius: 8px;
             background: linear-gradient(to right, #b91c1c, #d97706);
             color: #fff; font-weight: 700; cursor: pointer;
         }
 
-        /* Mesaj Kartı ve Aksiyonlar */
         .message-card { position: relative; animation: fadeIn 0.5s ease; }
         .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
         .user-name { font-weight: 700; color: #fcd34d; }
         .timestamp { font-size: 0.75rem; color: #a8a29e; }
         
+        .post-image { width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid rgba(255,255,255,0.1); }
+        .message-content a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); }
+        .message-content a:hover { color: #fff; border-bottom: 1px solid #fff; }
+
         .delete-btn {
             position: absolute; top: 10px; right: 10px;
             background: var(--dislike); color: white; border: none;
@@ -122,27 +137,96 @@
             display: none; align-items: center; justify-content: center; z-index: 10;
         }
 
+        /* --- AKSİYON BAR --- */
         .post-actions {
             margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);
-            display: flex; align-items: center; gap: 15px;
+            display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
         }
-
+        
         .btn-action {
             background: transparent; border: none; color: var(--muted);
-            cursor: pointer; display: flex; align-items: center; gap: 6px;
-            font-size: 0.9rem; padding: 5px 8px; border-radius: 6px; transition: 0.2s;
+            cursor: pointer; display: flex; align-items: center; gap: 4px;
+            font-size: 0.85rem; padding: 6px; border-radius: 6px; transition: 0.2s;
         }
         .btn-action:hover { background: rgba(255,255,255,0.1); color: #fff; }
-        .btn-action svg { width: 20px; height: 20px; fill: currentColor; }
-
+        .btn-action svg { width: 18px; height: 18px; fill: currentColor; }
         .btn-action.liked { color: var(--accent); }
         .btn-action.disliked { color: var(--dislike); }
-        .count-text { font-size: 0.85rem; font-weight: 600; }
+        .count-text { font-size: 0.8rem; font-weight: 600; }
 
+        /* REACTION WRAPPER */
+        .reaction-wrapper {
+            position: relative;
+            display: inline-block;
+            padding-bottom: 10px;
+            margin-bottom: -10px; 
+        }
+
+        /* EMOJİ POPUP */
+        .reaction-popup {
+            position: absolute;
+            bottom: 35px; 
+            left: 0;
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50px;
+            padding: 5px 10px;
+            display: flex; gap: 5px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.6);
+            opacity: 0; 
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none; 
+            z-index: 50;
+        }
+
+        .reaction-popup::after {
+            content: '';
+            position: absolute; bottom: -15px; left: 0; width: 100%; height: 20px; background: transparent;
+        }
+
+        .reaction-wrapper:hover .reaction-popup, 
+        .reaction-popup:hover {
+            opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto;
+        }
+
+        .btn-emoji-select {
+            background: transparent; border: none; cursor: pointer;
+            font-size: 1.6rem; transition: transform 0.2s; padding: 0 5px;
+            display: flex; align-items: center;
+        }
+        .btn-emoji-select:hover { transform: scale(1.3); }
+
+        /* --- SEÇİLİ EMOJİ GÖRÜNÜMÜ (GÜNCELLENDİ) --- */
+        /* Artık .btn-action ile aynı stilde */
+        .selected-reaction {
+            background: transparent; 
+            border: none; 
+            color: var(--muted);
+            cursor: pointer; 
+            display: flex; align-items: center; gap: 4px;
+            font-size: 0.85rem; padding: 6px; 
+            border-radius: 6px; 
+            transition: 0.2s;
+            font-weight: normal; /* Kalın yazı kaldırıldı */
+        }
+        
+        /* Hover olunca beyazlaşsın */
+        .reaction-wrapper:hover .selected-reaction {
+            background: rgba(255,255,255,0.1); 
+            color: #fff;
+        }
+        
+        /* Seçili olunca altın sarısı (Glowing) */
+        .selected-reaction.glowing {
+            color: var(--accent);
+            background: rgba(245, 158, 11, 0.15); /* Hafif sarı arka plan */
+        }
+
+        /* Yorum Bölümü */
         .comments-section {
-            display: none; margin-top: 15px;
-            background: rgba(0,0,0,0.3);
-            padding: 15px; border-radius: 8px;
+            display: none; margin-top: 15px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; width: 100%;
         }
         .comment-list { margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
         .single-comment {
@@ -150,7 +234,6 @@
         }
         .comment-header { font-size: 0.75rem; color: #aaa; margin-bottom: 3px; display: flex; justify-content: space-between; }
         .comment-author { color: #fcd34d; font-weight: 600; }
-        
         .comment-input-area { display: flex; gap: 10px; }
         .comment-input {
             flex: 1; padding: 8px; background: rgba(0,0,0,0.4); border: 1px solid #555;
@@ -161,48 +244,29 @@
             border-radius: 6px; font-weight: bold; cursor: pointer;
         }
 
-        /* --- FOOTER KISMI --- */
         .site-footer {
-            position: fixed;
-            bottom: 15px;
-            width: 100%;
-            text-align: center;
-            z-index: 100; /* Karın üstünde */
-            pointer-events: none; /* Boşluğa tıklayınca arkaya geçsin */
+            position: fixed; bottom: 15px; width: 100%; text-align: center;
+            z-index: 100; pointer-events: none;
         }
-
         .site-footer a {
-            pointer-events: auto; /* Link tıklanabilir olsun */
-            color: rgba(255, 255, 255, 0.5);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 600;
-            background: rgba(0, 0, 0, 0.4);
-            padding: 6px 14px;
-            border-radius: 20px;
-            transition: all 0.3s ease;
+            pointer-events: auto; color: rgba(255, 255, 255, 0.5); text-decoration: none;
+            font-size: 0.9rem; font-weight: 600; background: rgba(0, 0, 0, 0.4);
+            padding: 6px 14px; border-radius: 20px; transition: all 0.3s ease;
         }
-
         .site-footer a:hover {
-            color: #fff;
-            background: rgba(0, 0, 0, 0.8);
+            color: #fff; background: rgba(0, 0, 0, 0.8);
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
             box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
         }
-        /* --- ADMIN ONLINE USER PANEL --- */
-        #admin-panel {
-            position: fixed; bottom: 50px; left: 20px; /* Footer'ın biraz üstünde */
-            background: rgba(0,0,0,0.85); 
-            border: 1px solid #f59e0b; /* Altın rengi çerçeve */
-            padding: 15px; border-radius: 12px; z-index: 200;
-            width: 220px; backdrop-filter: blur(10px);
-            font-size: 0.9rem;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+
+        #online-panel {
+            position: fixed; bottom: 50px; left: 20px;
+            background: rgba(0,0,0,0.7); border: 1px solid #333;
+            padding: 15px; border-radius: 12px; z-index: 90;
+            width: 200px; backdrop-filter: blur(10px);
+            display: none; font-size: 0.85rem;
         }
-        #admin-panel h3 { 
-            margin: 0 0 10px 0; color: #f59e0b; font-size: 1rem; 
-            border-bottom: 1px solid #333; padding-bottom: 5px; 
-        }
+        #online-panel h3 { margin: 0 0 10px 0; color: var(--accent); font-size: 0.95rem; border-bottom: 1px solid #444; padding-bottom: 5px; }
         .online-user-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .online-user-item img { width: 24px; height: 24px; border-radius: 50%; border: 1px solid #fff; }
         .online-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; margin-left: auto; box-shadow: 0 0 5px #22c55e; }
@@ -212,20 +276,21 @@
 </head>
 <body>
 
-    <video autoplay muted loop playsinline id="bg-video">
+    <video autoplay muted loop playsinline id="bg-video" poster="https://images.unsplash.com/photo-1544275822-19d9b6851f5e?q=80&w=1600&auto=format&fit=crop">
         <source src="video.mp4" type="video/mp4">
     </video>
+    
     <div class="overlay"></div>
     <canvas id="snow-canvas"></canvas>
 
     <div class="container">
         <header>
             <h1>Yılbaşı 2026</h1>
-            <p>Miyavs topluluğu anı duvarı</p>
+            <p>Miyavs topluluğu anı duvarı.</p>
         </header>
 
         <div id="login-screen">
-            <p style="margin-bottom: 20px;">Mesaj yazmak  giriş yapmalısın.</p>
+            <p style="margin-bottom: 20px;">Mesaj yazmak ve etkileşim için giriş yapmalısın.</p>
             <button class="btn-google" id="google-login-btn">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
                 Google ile Giriş Yap
@@ -236,13 +301,25 @@
             <div class="user-info">
                 <div class="user-details">
                     <img id="current-user-img" class="user-avatar" src="" alt="">
-                    <span id="current-user-name">Kullanıcı</span>
+                    <div style="display:flex; flex-direction:column; justify-content:center;">
+                        <span id="current-user-name" style="font-weight:700; font-size:0.95rem;">Kullanıcı</span>
+                        <span id="user-post-count" style="font-size:0.75rem; color:#ccc;">0 Mesaj</span>
+                    </div>
                 </div>
                 <button class="btn-logout" id="logout-btn">Çıkış</button>
             </div>
 
             <div class="input-card">
                 <textarea id="content" placeholder="Buraya bir anı bırak..."></textarea>
+                
+                <div class="file-upload-wrapper">
+                    <label for="image-input" class="custom-file-upload">
+                        📷 Resim Ekle 
+                    </label>
+                    <input id="image-input" type="file" accept="image/*" />
+                    <img id="image-preview" src="" alt="Önizleme">
+                </div>
+
                 <button class="btn-send" id="send-btn">Mesajı Gönder</button>
             </div>
 
@@ -250,20 +327,22 @@
         </div>
     </div>
 
+    <div id="online-panel">
+        <h3>🟢 Aktif Kişiler</h3>
+        <div id="online-users-list"></div>
+    </div>
+
     <div class="site-footer">
         <a href="https://www.instagram.com/hsyntznr" target="_blank">Made by @hsyntznr</a>
     </div>
 
     <script type="module">
-        // --- 1. AYARLAR KISMI ---
-        // SENİN GMAİL ADRESİNİ BURAYA YAZ (Admin yetkisi için şart)
         const ADMIN_EMAIL = "husosude1903@gmail.com"; 
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, deleteDoc, doc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-        // --- 2. FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyCBJfj3-ZVw36LtWJUJpF9kxN8jplOpcjo",
             authDomain: "yilbasiforum.firebaseapp.com",
@@ -278,189 +357,225 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        // --- DOM Elemanları ---
         const loginScreen = document.getElementById('login-screen');
         const appScreen = document.getElementById('app-screen');
         const loginBtn = document.getElementById('google-login-btn');
         const logoutBtn = document.getElementById('logout-btn');
         const sendBtn = document.getElementById('send-btn');
         const contentInput = document.getElementById('content');
+        const imageInput = document.getElementById('image-input');
+        const imagePreview = document.getElementById('image-preview');
         const messageList = document.getElementById('message-list');
         const userNameDisplay = document.getElementById('current-user-name');
         const userImgDisplay = document.getElementById('current-user-img');
-        
-        // Admin Paneli Elemanları
-        const adminPanel = document.getElementById('admin-panel');
+        const userPostCountDisplay = document.getElementById('user-post-count'); 
+        const onlinePanel = document.getElementById('online-panel');
         const onlineUsersList = document.getElementById('online-users-list');
 
         let currentUser = null;
         let heartbeatInterval = null;
 
-        // --- GİRİŞ / ÇIKIŞ İŞLEMLERİ ---
         loginBtn.addEventListener('click', () => {
             signInWithPopup(auth, provider).catch((error) => alert("Giriş hatası: " + error.message));
         });
 
         logoutBtn.addEventListener('click', () => {
-            // Çıkış yaparken online listesinden sil
-            if(currentUser) {
-                deleteDoc(doc(db, "online_users", currentUser.uid));
-            }
+            if(currentUser) deleteDoc(doc(db, "online_users", currentUser.uid));
             signOut(auth);
         });
 
-        // Kullanıcı Durumunu İzle
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // Giriş Başarılı
                 currentUser = user;
                 loginScreen.style.display = 'none';
                 appScreen.style.display = 'block';
+                onlinePanel.style.display = 'block';
                 userNameDisplay.textContent = user.displayName;
                 userImgDisplay.src = user.photoURL;
                 
-                // Mesajları Dinle
                 listenForMessages();
-
-                // Online Sistemini Başlat
                 startHeartbeat(user);
-
-                // Eğer Adminse Paneli Aç
-                if(user.email === ADMIN_EMAIL) {
-                    if(adminPanel) adminPanel.style.display = 'block';
-                    listenOnlineUsers();
-                } else {
-                    if(adminPanel) adminPanel.style.display = 'none';
-                }
-
+                listenOnlineUsers();
+                listenUserStats(user.email); 
             } else {
-                // Çıkış Yapıldı
                 currentUser = null;
                 loginScreen.style.display = 'block';
                 appScreen.style.display = 'none';
+                onlinePanel.style.display = 'none';
                 messageList.innerHTML = '';
-                if(adminPanel) adminPanel.style.display = 'none';
                 if(heartbeatInterval) clearInterval(heartbeatInterval);
             }
         });
 
-        // --- ONLINE KULLANICI SİSTEMİ (Heartbeat) ---
-        function startHeartbeat(user) {
-            updatePresence(user); // İlk sinyal
-            // Her 60 saniyede bir güncelle
-            heartbeatInterval = setInterval(() => {
-                updatePresence(user);
-            }, 60000);
-
-            // Sayfa kapanırken silmeyi dene
-            window.addEventListener('beforeunload', () => {
-                deleteDoc(doc(db, "online_users", user.uid));
+        function listenUserStats(email) {
+            const q = query(collection(db, "posts"), where("email", "==", email));
+            onSnapshot(q, (snapshot) => {
+                const count = snapshot.size;
+                userPostCountDisplay.textContent = `${count} Mesaj`;
             });
+        }
+
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if(file) {
+                if (file.size > 2097152) { 
+                    alert("Resim boyutu çok büyük! Lütfen 2MB altında bir resim seçin.");
+                    this.value = ""; 
+                    imagePreview.style.display = "none";
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = "block";
+                }
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.style.display = "none";
+            }
+        });
+
+        function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const maxWidth = 800; 
+                        const scaleSize = maxWidth / img.width;
+                        canvas.width = maxWidth;
+                        canvas.height = img.height * scaleSize;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
+                        resolve(dataUrl);
+                    };
+                    img.onerror = (err) => reject(err);
+                };
+                reader.onerror = (err) => reject(err);
+            });
+        }
+
+        sendBtn.addEventListener('click', async () => {
+            const text = contentInput.value.trim();
+            const file = imageInput.files[0];
+
+            if (!text && !file) return;
+
+            sendBtn.disabled = true;
+            sendBtn.textContent = "Yükleniyor...";
+
+            try {
+                let imageUrl = null;
+                if (file) {
+                    try {
+                        imageUrl = await compressImage(file);
+                    } catch (err) {
+                        alert("Resim hatası."); sendBtn.disabled = false; return;
+                    }
+                }
+
+                await addDoc(collection(db, "posts"), {
+                    name: currentUser.displayName,
+                    email: currentUser.email,
+                    content: text,
+                    imageUrl: imageUrl, 
+                    likes: [], dislikes: [],
+                    react_laugh: [], react_sad: [], react_angry: [], react_wow: [], react_love: [],
+                    timestamp: serverTimestamp(),
+                    timeString: new Date().toLocaleDateString('tr-TR') + ' • ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'})
+                });
+
+                contentInput.value = '';
+                imageInput.value = '';
+                imagePreview.style.display = 'none';
+                sendBtn.disabled = false;
+                sendBtn.textContent = "Mesajı Gönder";
+
+            } catch (e) { 
+                alert("Hata: " + e.message); 
+                sendBtn.disabled = false;
+                sendBtn.textContent = "Mesajı Gönder";
+            }
+        });
+
+        function linkify(text) {
+            const urlPattern = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlPattern, '<a href="$1" target="_blank">$1</a>');
+        }
+
+        function startHeartbeat(user) {
+            updatePresence(user);
+            heartbeatInterval = setInterval(() => { updatePresence(user); }, 60000);
+            window.addEventListener('beforeunload', () => { deleteDoc(doc(db, "online_users", user.uid)); });
         }
 
         async function updatePresence(user) {
             try {
                 await setDoc(doc(db, "online_users", user.uid), {
-                    name: user.displayName,
-                    photo: user.photoURL,
-                    lastActive: serverTimestamp()
+                    name: user.displayName, photo: user.photoURL, lastActive: serverTimestamp()
                 });
-            } catch(e) { console.log("Presence hatası:", e); }
+            } catch(e) {}
         }
 
-        // --- ADMIN: Online Listesini Dinle ---
-        // --- ADMIN: Online Listesini Dinle ve Temizle ---
         function listenOnlineUsers() {
             const q = query(collection(db, "online_users"));
-            
             onSnapshot(q, (snapshot) => {
                 if(!onlineUsersList) return;
                 onlineUsersList.innerHTML = "";
-                
-                const now = new Date(); // Adminin şu anki saati
-
+                const now = new Date();
                 snapshot.forEach((docSnap) => {
                     const u = docSnap.data();
                     let isOnline = false;
-
-                    // Zaman kontrolü: Son görülme zamanına bak
                     if(u.lastActive) {
-                        const lastActiveTime = u.lastActive.toDate(); // Firebase tarihini JS tarihine çevir
-                        const diffSeconds = (now - lastActiveTime) / 1000; // Saniye farkı
-                        
-                        // Eğer son sinyal 2 dakika (120 saniye) içindeyse online kabul et
-                        if(diffSeconds < 120) {
-                            isOnline = true;
-                        } else {
-                            // 2 dakikadan eskiyse veritabanından da sil (Otomatik Temizlik)
-                            // Bu sayede veritabanın şişmez
-                            deleteDoc(docSnap.ref);
-                        }
+                        const diff = (now - u.lastActive.toDate()) / 1000;
+                        if(diff < 180) isOnline = true;
+                        else deleteDoc(docSnap.ref);
                     }
-
-                    // Sadece gerçekten online olanları ekrana bas
                     if(isOnline) {
                         onlineUsersList.innerHTML += `
                             <div class="online-user-item">
                                 <img src="${u.photo}" alt="user">
                                 <span>${escapeHtml(u.name)}</span>
                                 <div class="online-dot"></div>
-                            </div>
-                        `;
+                            </div>`;
                     }
                 });
-
-                if(onlineUsersList.innerHTML === "") {
-                    onlineUsersList.innerHTML = "<div style='color:#aaa; font-size:0.8rem;'>Kimse yok :(</div>";
-                }
+                if(onlineUsersList.innerHTML === "") onlineUsersList.innerHTML = "<div style='color:#aaa;'>Kimse yok :(</div>";
             });
         }
 
-        // --- POST GÖNDERME ---
-        sendBtn.addEventListener('click', async () => {
-            const text = contentInput.value.trim();
-            if (!text) return;
-
-            try {
-                await addDoc(collection(db, "posts"), {
-                    name: currentUser.displayName,
-                    email: currentUser.email,
-                    content: text,
-                    likes: [], 
-                    dislikes: [],
-                    timestamp: serverTimestamp(),
-                    timeString: new Date().toLocaleDateString('tr-TR') + ' • ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'})
-                });
-                contentInput.value = '';
-            } catch (e) {
-                alert("Mesaj gönderilemedi: " + e.message);
-            }
-        });
-
-        // --- POSTLARI LİSTELEME ---
         function listenForMessages() {
             const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
-            
             onSnapshot(q, (snapshot) => {
-                messageList.innerHTML = ""; 
+                messageList.innerHTML = "";
                 snapshot.forEach((docSnap) => {
                     createPostElement(docSnap.data(), docSnap.id);
                 });
             });
         }
 
-        // --- HTML KART OLUŞTURMA ---
         function createPostElement(post, id) {
             const div = document.createElement('div');
             div.className = 'message-card';
 
-            // Admin Silme Butonu
             let deleteButtonHTML = '';
             if (currentUser && currentUser.email === ADMIN_EMAIL) {
                 deleteButtonHTML = `<button class="delete-btn" onclick="deletePost('${id}')" style="display:flex;">X</button>`;
             }
 
-            // Like/Dislike Hesaplama
+            let imageHTML = '';
+            if (post.imageUrl) {
+                imageHTML = `<img src="${post.imageUrl}" class="post-image" alt="Post Resmi">`;
+            }
+
+            const safeContent = escapeHtml(post.content);
+            const linkedContent = linkify(safeContent);
+
+            // LIKE DISLIKE
             const likes = post.likes || [];
             const dislikes = post.dislikes || [];
             const userLiked = likes.includes(currentUser.uid) ? 'liked' : '';
@@ -468,27 +583,76 @@
             const likeCount = likes.length > 0 ? likes.length : '';
             const dislikeCount = dislikes.length > 0 ? dislikes.length : '';
 
+            // EMOJI TESPİTİ ve AYRI AYRI SAYILAR
+            let activeParts = []; // "😂 2", "❤️ 1" gibi parçaları tutacak
+            let userHasReacted = false;
+
+            const reactions = [
+                { key: 'react_laugh', icon: '😂' },
+                { key: 'react_sad', icon: '😢' },
+                { key: 'react_angry', icon: '😡' },
+                { key: 'react_wow', icon: '😮' },
+                { key: 'react_love', icon: '❤️' }
+            ];
+
+            reactions.forEach(r => {
+                const arr = post[r.key] || [];
+                const count = arr.length;
+                
+                if (count > 0) {
+                    activeParts.push(`<span style="margin-right:6px;">${r.icon} ${count}</span>`);
+                }
+
+                if (arr.includes(currentUser.uid)) {
+                    userHasReacted = true;
+                }
+            });
+
+            // Buton Görüntüsü
+            let reactionBtnContent = `<span>Tepki Ver</span>`;
+            let reactionBtnClass = '';
+
+            if (userHasReacted) reactionBtnClass = 'glowing';
+
+            if (activeParts.length > 0) {
+                // Parçaları birleştir: 😂 2  ❤️ 1  😮 3
+                reactionBtnContent = activeParts.join(''); 
+            }
+
             div.innerHTML = `
                 ${deleteButtonHTML}
                 <div class="card-header">
                     <span class="user-name">${escapeHtml(post.name)}</span>
                     <span class="timestamp">${post.timeString}</span>
                 </div>
-                <div style="line-height:1.5; white-space: pre-wrap;">${escapeHtml(post.content)}</div>
+                <div class="message-content" style="line-height:1.5; white-space: pre-wrap;">${linkedContent}</div>
+                ${imageHTML}
                 
                 <div class="post-actions">
                     <button class="btn-action ${userLiked}" id="like-btn-${id}">
                         <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-1.91l-.01-.01L23 10z"/></svg>
                         <span class="count-text">${likeCount}</span>
                     </button>
-
                     <button class="btn-action ${userDisliked}" id="dislike-btn-${id}">
                         <svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v1.91l.01.01L1 14c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg>
                         <span class="count-text">${dislikeCount}</span>
                     </button>
 
-                    <div style="flex-grow:1;"></div>
+                    <div class="reaction-wrapper">
+                        <div class="selected-reaction ${reactionBtnClass}" style="cursor:pointer; font-size:0.9rem;">
+                            ${reactionBtnContent}
+                        </div>
 
+                        <div class="reaction-popup">
+                            <button class="btn-emoji-select" onclick="handleEmoji('${id}', 'react_laugh')">😂</button>
+                            <button class="btn-emoji-select" onclick="handleEmoji('${id}', 'react_sad')">😢</button>
+                            <button class="btn-emoji-select" onclick="handleEmoji('${id}', 'react_angry')">😡</button>
+                            <button class="btn-emoji-select" onclick="handleEmoji('${id}', 'react_wow')">😮</button>
+                            <button class="btn-emoji-select" onclick="handleEmoji('${id}', 'react_love')">❤️</button>
+                        </div>
+                    </div>
+
+                    <div style="flex-grow:1;"></div>
                     <button class="btn-action" id="btn-toggle-${id}">
                         💬 Yorumlar <span id="comment-count-${id}" style="margin-left:5px; font-weight:bold;"></span>
                     </button>
@@ -505,25 +669,15 @@
 
             messageList.appendChild(div);
 
-            // --- OLAY DİNLEYİCİLERİ (Event Listeners) --- //
-
-            // 1. Like & Dislike
             document.getElementById(`like-btn-${id}`).addEventListener('click', () => handleVote(id, 'like'));
             document.getElementById(`dislike-btn-${id}`).addEventListener('click', () => handleVote(id, 'dislike'));
-
-            // 2. Yorum Aç/Kapa
+            
             const toggleBtn = document.getElementById(`btn-toggle-${id}`);
             const commentSection = document.getElementById(`comments-section-${id}`);
-            
             toggleBtn.addEventListener('click', () => {
-                if (commentSection.style.display === 'none' || commentSection.style.display === '') {
-                    commentSection.style.display = 'block';
-                } else {
-                    commentSection.style.display = 'none';
-                }
+                commentSection.style.display = (commentSection.style.display === 'none' || commentSection.style.display === '') ? 'block' : 'none';
             });
 
-            // 3. Yorum Gönder
             document.getElementById(`send-${id}`).addEventListener('click', async () => {
                 const input = document.getElementById(`input-${id}`);
                 const txt = input.value.trim();
@@ -534,19 +688,13 @@
                 input.value = '';
             });
 
-            // 4. Yorumları Canlı Dinle & Sayıyı Güncelle
             const commentsRef = collection(db, "posts", id, "comments");
             const qComments = query(commentsRef, orderBy("timestamp", "asc"));
             onSnapshot(qComments, (snap) => {
                 const listContainer = document.getElementById(`list-${id}`);
                 const countBadge = document.getElementById(`comment-count-${id}`);
-                
-                // Sayı Rozeti
                 const count = snap.size;
-                if (count > 0) countBadge.textContent = `(${count})`;
-                else countBadge.textContent = "";
-
-                // Listeyi Doldur
+                countBadge.textContent = count > 0 ? `(${count})` : "";
                 listContainer.innerHTML = ''; 
                 snap.forEach(doc => {
                     const c = doc.data();
@@ -559,56 +707,60 @@
             });
         }
 
-        // --- LIKE/DISLIKE İŞLEMİ ---
+        window.handleEmoji = async (postId, type) => {
+            const postRef = doc(db, "posts", postId);
+            const docSnap = await getDoc(postRef);
+            if (!docSnap.exists()) return;
+            
+            const data = docSnap.data();
+            const uid = currentUser.uid;
+            
+            const currentArray = data[type] || [];
+            const isAdded = currentArray.includes(uid);
+
+            if (isAdded) {
+                await updateDoc(postRef, { [type]: arrayRemove(uid) });
+            } else {
+                await updateDoc(postRef, {
+                    react_laugh: arrayRemove(uid),
+                    react_sad: arrayRemove(uid),
+                    react_angry: arrayRemove(uid),
+                    react_wow: arrayRemove(uid),
+                    react_love: arrayRemove(uid)
+                });
+                await updateDoc(postRef, { [type]: arrayUnion(uid) });
+            }
+        };
+
         async function handleVote(postId, type) {
             const postRef = doc(db, "posts", postId);
             const docSnap = await getDoc(postRef);
             if (!docSnap.exists()) return;
-
             const data = docSnap.data();
             const likes = data.likes || [];
             const dislikes = data.dislikes || [];
             const uid = currentUser.uid;
 
             if (type === 'like') {
-                if (likes.includes(uid)) {
-                    // Zaten like varsa kaldır
-                    await updateDoc(postRef, { likes: arrayRemove(uid) });
-                } else {
-                    // Like ekle, dislike varsa kaldır
-                    await updateDoc(postRef, { 
-                        likes: arrayUnion(uid),
-                        dislikes: arrayRemove(uid)
-                    });
-                }
+                if (likes.includes(uid)) await updateDoc(postRef, { likes: arrayRemove(uid) });
+                else await updateDoc(postRef, { likes: arrayUnion(uid), dislikes: arrayRemove(uid) });
             } else if (type === 'dislike') {
-                if (dislikes.includes(uid)) {
-                    // Zaten dislike varsa kaldır
-                    await updateDoc(postRef, { dislikes: arrayRemove(uid) });
-                } else {
-                    // Dislike ekle, like varsa kaldır
-                    await updateDoc(postRef, { 
-                        dislikes: arrayUnion(uid),
-                        likes: arrayRemove(uid)
-                    });
-                }
+                if (dislikes.includes(uid)) await updateDoc(postRef, { dislikes: arrayRemove(uid) });
+                else await updateDoc(postRef, { dislikes: arrayUnion(uid), likes: arrayRemove(uid) });
             }
         }
 
-        // --- HTML GÜVENLİĞİ ---
         function escapeHtml(text) {
             if (!text) return "";
             return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
-        // --- POST SİLME (Admin İçin) ---
         window.deletePost = async (id) => {
             if (confirm("Bu mesajı silmek istediğine emin misin?")) {
                 await deleteDoc(doc(db, "posts", id));
             }
         };
 
-        // --- KAR ANİMASYONU (Alt Kısımda) ---
         const canvas = document.getElementById('snow-canvas');
         const ctx = canvas.getContext('2d');
         let width, height, flakes = [], groundHeightMap = []; 
@@ -651,11 +803,4 @@
         window.addEventListener('resize', init); init(); animate();
     </script>
 </body>
-<div id="admin-panel" style="display:none;">
-        <h3>🟢 Aktif Kişiler</h3>
-        <div id="online-users-list">
-            </div>
-    </div>
 </html>
-
-
